@@ -12,10 +12,9 @@ pub fn capture_packets() -> Result<(), Box<dyn std::error::Error>> {
         .snaplen(5000)
         .open()?;
 
-    // Print table headers
     println!("{:<20} {:<20} {:<17} {:<17} {:<9} {:<9}", 
              "Src MAC", "Dst MAC", "Src IP", "Dst IP", "Src Port", "Dst Port");
-    println!("{:=<95}", ""); // Print a divider
+    println!("{:=<95}", ""); 
 
     while let Ok(packet) = cap.next_packet() {
         if let Some(ethernet) = EthernetPacket::new(packet.data) {
