@@ -1,23 +1,22 @@
 use pcap::{Capture, Device};
-use pnet_packet::ethernet::{EthernetPacket, EtherTypes};
+use pnet_packet::ethernet::{EtherTypes, EthernetPacket};
 use pnet_packet::ipv4::Ipv4Packet;
 use pnet_packet::tcp::TcpPacket;
 use pnet_packet::udp::UdpPacket;
 use pnet_packet::Packet;
 
-pub fn capture_packets(interface_name: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
-    let device = match interface_name {
-        Some(name) => Device::list()?.into_iter().find(|d| d.name == name).unwrap(),
-        None => Device::lookup()?.unwrap(),
-    };
+pub fn capture_packets() -> Result<(), Box<dyn std::error::Error>> {
+    let device = Device::lookup()?.unwrap();
     let mut cap = Capture::from_device(device)?
         .promisc(true)
         .snaplen(5000)
         .open()?;
 
-    println!("{:<20} {:<20} {:<17} {:<17} {:<9} {:<9}", 
-             "Src MAC", "Dst MAC", "Src IP", "Dst IP", "Src Port", "Dst Port");
-    println!("{:=<95}", ""); 
+    println!(
+        "{:<20} {:<20} {:<17} {:<17} {:<9} {:<9}",
+        "Src MAC", "Dst MAC", "Src IP", "Dst IP", "Src Port", "Dst Port"
+    );
+    println!("{:=<95}", "");
 
     while let Ok(packet) = cap.next_packet() {
         if let Some(ethernet) = EthernetPacket::new(packet.data) {
@@ -34,21 +33,38 @@ pub fn capture_packets(interface_name: Option<&str>) -> Result<(), Box<dyn std::
                         let (source_port, destination_port) = match protocol {
                             pnet_packet::ip::IpNextHeaderProtocols::Tcp => {
                                 if let Some(tcp) = TcpPacket::new(ipv4.payload()) {
-                                    (tcp.get_source().to_string(), tcp.get_destination().to_string())
-                                } else { ("N/A".to_string(), "N/A".to_string()) }
-                            },
+                                    (
+                                        tcp.get_source().to_string(),
+                                        tcp.get_destination().to_string(),
+                                    )
+                                } else {
+                                    ("N/A".to_string(), "N/A".to_string())
+                                }
+                            }
                             pnet_packet::ip::IpNextHeaderProtocols::Udp => {
                                 if let Some(udp) = UdpPacket::new(ipv4.payload()) {
-                                    (udp.get_source().to_string(), udp.get_destination().to_string())
-                                } else { ("N/A".to_string(), "N/A".to_string()) }
-                            },
+                                    (
+                                        udp.get_source().to_string(),
+                                        udp.get_destination().to_string(),
+                                    )
+                                } else {
+                                    ("N/A".to_string(), "N/A".to_string())
+                                }
+                            }
                             _ => ("N/A".to_string(), "N/A".to_string()),
                         };
 
-                        println!("{:<20} {:<20} {:<17} {:<17} {:<9} {:<9}", 
-                                 source_mac, destination_mac, source_ip, destination_ip, source_port, destination_port);
+                        println!(
+                            "{:<20} {:<20} {:<17} {:<17} {:<9} {:<9}",
+                            source_mac,
+                            destination_mac,
+                            source_ip,
+                            destination_ip,
+                            source_port,
+                            destination_port
+                        );
                     }
-                },
+                }
                 _ => println!("{:<20} {:<20} Non-IP packet", source_mac, destination_mac),
             }
         }
@@ -56,3 +72,4 @@ pub fn capture_packets(interface_name: Option<&str>) -> Result<(), Box<dyn std::
 
     Ok(())
 }
+
